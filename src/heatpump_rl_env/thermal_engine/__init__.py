@@ -1,0 +1,1 @@
+"""Thermal engine: RC-network models and related tools."""
