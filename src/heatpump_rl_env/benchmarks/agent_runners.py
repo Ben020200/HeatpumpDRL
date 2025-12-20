@@ -11,6 +11,8 @@ try:
 except ImportError:
     HAS_SB3 = False
 
+from heatpump_rl_env.benchmarks.discrete_action_wrapper import DiscreteActionWrapper
+
 
 class AgentRunner:
     """Base class for RL agent runners."""
@@ -58,14 +60,15 @@ class AgentRunner:
 
 
 class DQNRunner(AgentRunner):
-    """DQN agent (discrete actions, but we'll use it for continuous via discretization)."""
+    """DQN agent (uses a discrete wrapper over the continuous env)."""
 
     def __init__(self, env, learning_rate: float = 1e-4, buffer_size: int = 10000):
-        super().__init__(env, "DQN")
-        # Note: DQN is for discrete actions. For continuous, we discretize to 5 levels.
+        # Wrap env into discrete version with 5 power levels
+        discrete_env = DiscreteActionWrapper(env, levels=[0.0, 0.25, 0.5, 0.75, 1.0])
+        super().__init__(discrete_env, "DQN")
         self.model = DQN(
             "MlpPolicy",
-            env,
+            discrete_env,
             learning_rate=learning_rate,
             buffer_size=buffer_size,
             verbose=0,

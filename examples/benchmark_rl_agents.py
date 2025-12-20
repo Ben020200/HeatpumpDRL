@@ -28,7 +28,7 @@ def run_baseline_controller(env, controller, controller_name: str, n_episodes: i
     return metrics.summary()
 
 
-def run_rl_agent(env, agent_runner, n_train_steps: int = 50000, n_eval_episodes: int = 3):
+def run_rl_agent(env, agent_runner, n_train_steps: int = 5000, n_eval_episodes: int = 3):
     """Train and evaluate an RL agent."""
     print(f"\n{'='*60}")
     print(f"Training {agent_runner.agent_name} agent...")
@@ -101,9 +101,11 @@ def main():
     print("-" * 55)
 
     for agent_name, result in results.items():
-        energy = result.get("mean_energy_kwh", result.get("mean_energy_kwh", "N/A"))
+        energy = result.get("mean_energy_kwh", "N/A")
         reward = result.get("mean_reward", "N/A")
-        print(f"{agent_name:<25} {energy:<15.1f} {reward:<15.3f}")
+        energy_str = f"{energy:.1f}" if isinstance(energy, (int, float)) else str(energy)
+        reward_str = f"{reward:.3f}" if isinstance(reward, (int, float)) else str(reward)
+        print(f"{agent_name:<25} {energy_str:<15} {reward_str:<15}")
 
     print("="*60)
 
