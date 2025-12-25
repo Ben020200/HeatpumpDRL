@@ -37,7 +37,7 @@ class ResidentialHeatPumpEnv(ThermalEnvironment):
         self.area = float(config["building_area_m2"])
         self.u_value = float(config["u_value_w_m2k"])
         self.ua = self.u_value * self.area
-        self.thermal_mass = float(config["thermal_mass_j_k"])
+        self.thermal_mass = float(config.get("thermal_mass_j_k", 5e6))
 
         # HVAC
         self.hp = HeatPump(
@@ -63,7 +63,7 @@ class ResidentialHeatPumpEnv(ThermalEnvironment):
 
         # State tracking
         self.previous_power = 0.0
-        self.internal_gains = 200.0  # W (fixed for now)
+        self.internal_gains = float(config.get("internal_gains_w", 200.0))  # W (fixed for now)
         self.price = 0.25  # €/kWh (fixed for now; can be time-varying)
 
         # Occupancy schedule (simplified: 6-9, 17-23)
@@ -157,7 +157,7 @@ class ResidentialHeatPumpEnv(ThermalEnvironment):
 
         self.episode_step = 0
         self.previous_power = 0.0
-        self.model.set_state(np.array([20.0], dtype=float))
+        self.model.set_state(np.array([15.0], dtype=float))
         self.cumulative_energy_kwh = 0.0
         self.cumulative_cost = 0.0
         self.comfort_violations = 0.0
@@ -181,21 +181,24 @@ class ResidentialHeatPumpEnv(ThermalEnvironment):
         weather = self.weather.get_hourly(self.episode_step)
         T_amb = weather["T_ambient"]
 
-        # Compute COP
+                # Compute COP
         cop = self.hp.compute_cop(T_amb, 35.0)  # Sink = 35°C (DHW tank return)
 
         # Heat output
         Q_hp = self.hp.compute_heat_output(cop, Q_hp_elec)
 
+        # Update occupancy FIRST (before using it)
+        self._update_occupancy(self.episode_step, self.episode_step // 24)
+        
+        # Internal gains only when occupied
+        Q_internal = 200.0 if self.occupancy else 0.0
+
         # Update thermal model
-        inputs = np.array([Q_hp, T_amb, self.internal_gains], dtype=float)
+        inputs = np.array([Q_hp, T_amb, Q_internal], dtype=float)
         self.model.step(inputs, dt=3600.0)
 
-        # Update occupancy
-        self._update_occupancy(self.episode_step, self.episode_step // 24)
-
         # Logging
-        energy_kwh = Q_hp_elec / 3600 / 1000
+        energy_kwh = Q_hp_elec * 3600.0 / (1000.0 * 1000.0)  # W * s / (kW * s) = kWh
         self.cumulative_energy_kwh += energy_kwh
         self.cumulative_cost += energy_kwh * self.price
 

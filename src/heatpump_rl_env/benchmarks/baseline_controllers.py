@@ -17,7 +17,7 @@ class BaselineController(ABC):
 class OnOffController(BaselineController):
     """Simple on-off hysteresis control."""
 
-    def __init__(self, setpoint: float = 21.0, deadband: float = 2.0):
+    def __init__(self, setpoint: float = 21.0, deadband: float = 0.8): 
         self.setpoint = float(setpoint)
         self.deadband = float(deadband)
         self.state = False
